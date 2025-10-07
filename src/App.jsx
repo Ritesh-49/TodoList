@@ -4,142 +4,140 @@ import { v4 as uuidv4 } from 'uuid';
 import { FaEdit } from "react-icons/fa";
 import { AiFillDelete } from "react-icons/ai";
 
-
 function App() {
-  // to add todo
   const [todo, setTodo] = useState("")
-
-  // to Hold todos
   const [todos, setTodos] = useState([])
-
-  const [isEditing, setIsEditing] = useState(false);
-  
-  const [showFinished, setshowFinished] = useState(true)
-
-
-
+  const [isEditing, setIsEditing] = useState(false)
+  const [editId, setEditId] = useState(null)
+  const [showFinished, setShowFinished] = useState(true)
 
   useEffect(() => {
-    let todoString = localStorage.getItem("todos")
+    const todoString = localStorage.getItem("todos")
     if (todoString) {
-      let todos = JSON.parse(localStorage.getItem("todos"))
-    setTodos(todos)
-        
+      setTodos(JSON.parse(todoString))
     }
   }, [])
-  
 
-  const saveTodos = () => {
+  useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos))
-  }
+  }, [todos])
 
-  const toggleFinished = (e) => {
-    setshowFinished(!showFinished)
-  }
-
-
-
-  
   const handleAdd = () => {
-    setTodos([...todos,{id:uuidv4(), todo, isCompleted:false}])
+    setTodos([...todos, { id: uuidv4(), todo, isCompleted: false }])
     setTodo("")
-    console.log(todos);
-    saveTodos()
-    
   }
-  const handleEdit = (e, id) => {
-   let t  =  todos.filter((todo) => todo.id === id)
-  //  setTodo(t[0].todo)
-   setTodos((prev) => prev.filter((todo) => todo.id !== id))
-   setIsEditing(true);
-   saveTodos()
-  }
-    const handleSave = () => {
-    setTodos([...todos, { id: uuidv4(), todo, isCompleted: false }]);
-    setTodo("");
-    setIsEditing(false); 
-    saveTodos()
-  };
-    
 
-  const handleDelete = (e, id) => {
-    if (window.confirm("Are you sure your want to delete")) {
-      
-      setTodos((prev) => prev.filter((todo) => todo.id !== id))
-      console.log(id);
-      saveTodos()
+  const handleEdit = (id) => {
+    const t = todos.find((item) => item.id === id)
+    setTodo(t.todo)
+    setIsEditing(true)
+    setEditId(id)
+  }
+
+  const handleSave = () => {
+    setTodos(todos.map(item =>
+      item.id === editId ? { ...item, todo } : item
+    ))
+    setTodo("")
+    setIsEditing(false)
+    setEditId(null)
+  }
+
+  const handleDelete = (id) => {
+    if (window.confirm("Are you sure you want to delete?")) {
+      setTodos(todos.filter(item => item.id !== id))
     }
-    
-    
-  }
-  const handleChange = (e) => {
-    setTodo(e.target.value);
   }
 
-  const handleCheckbox = (e) => { 
-    let id = e.target.name;
-    let index = todos.findIndex(item => item.id === id)
-    let newTodos = [...todos]
-    newTodos[index].isCompleted  = !newTodos[index].isCompleted
-    setTodos(newTodos)
-    saveTodos()
+  const handleChange = (e) => setTodo(e.target.value)
+
+  const handleCheckbox = (id) => {
+    setTodos(todos.map(item =>
+      item.id === id ? { ...item, isCompleted: !item.isCompleted } : item
+    ))
   }
+
+  const toggleFinished = () => setShowFinished(!showFinished)
 
   return (
     <>
       <Navbar />
-      <div className="md:container md:mx-auto mx-3 my-5 rounded-xl p-5  bg-violet-100 min-h-[80vh] md:w-1/2">
-          <h2 className="text-lg font-bold ">Add a Todo</h2>
-        <div className="addTodo my-4 flex">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <h2 className="text-2xl font-bold mb-4 text-center">Add a Todo</h2>
+        <form
+          className="flex flex-col sm:flex-row gap-3 mb-6"
+          onSubmit={e => {
+            e.preventDefault()
+            isEditing ? handleSave() : handleAdd()
+          }}
+        >
           <input
             onChange={handleChange}
             value={todo}
             type="text"
-            
-            className="w-full rounded-lg"
+            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
+            placeholder="Enter your task..."
           />
           <button
-             onClick={isEditing ? handleSave : handleAdd}
-             disabled = {todo.length <= 3}
-            className="bg-violet-800 hover:bg-violet-950 px-3 py-1 text-sm font-bold text-white  mx-6 disabled:bg-slate-950 rounded-lg"
-            
+            type="submit"
+            disabled={todo.length <= 3}
+            className="bg-violet-800 hover:bg-violet-950 px-6 py-2 text-sm font-bold text-white rounded-lg disabled:bg-slate-400 transition-all"
           >
-          {isEditing ? "Save" : "Add"}
-            
+            {isEditing ? "Save" : "Add"}
           </button>
-        </div>
-        <input onChange={toggleFinished} type="checkbox" checked={showFinished} /> Show showFinished
-        <h2 className="text-xl font-bold">Todos</h2>
-        <div className="todos pt-2">
-          {todos.length === 0 && <div className='m-'>Empty todo </div>}
-          {todos.map((item,index) => (
-            (showFinished || !item.isCompleted) &&
-            <div key={index} className="todo flex pt-4  md:w-1/2 justify-between">
-              <div className='flex gap-4'>
-                <input onChange={handleCheckbox} type="checkbox" checked={item.isCompleted} name={item.id} id='' />
-                <div className={item.isCompleted ? "line-through" : ""}>{item.todo}</div>
+        </form>
+        <label className="flex items-center mb-4 gap-2">
+          <input
+            type="checkbox"
+            checked={showFinished}
+            onChange={toggleFinished}
+            className="accent-violet-800"
+          />
+          <span className="text-gray-700">Show Completed</span>
+        </label>
+        <h2 className="text-xl font-bold mb-2">Todos</h2>
+        <div className="space-y-4">
+          {todos.length === 0 && (
+            <div className="text-center text-gray-500 py-8">No todos yet!</div>
+          )}
+          {todos.map((item) =>
+            (showFinished || !item.isCompleted) && (
+              <div
+                key={item.id}
+                className="flex flex-col sm:flex-row items-center justify-between bg-white rounded-lg shadow p-4"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <input
+                    type="checkbox"
+                    checked={item.isCompleted}
+                    onChange={() => handleCheckbox(item.id)}
+                    className="accent-violet-800"
+                  />
+                  <span className={`flex-1 text-lg ${item.isCompleted ? "line-through text-gray-400" : "text-gray-800"}`}>
+                    {item.todo}
+                  </span>
+                </div>
+                <div className="flex gap-2 mt-3 sm:mt-0">
+                  <button
+                    onClick={() => handleEdit(item.id)}
+                    className="bg-violet-800 hover:bg-violet-950 px-3 py-1 text-sm font-bold text-white rounded-md flex items-center"
+                  >
+                    <FaEdit />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="bg-red-600 hover:bg-red-800 px-3 py-1 text-sm font-bold text-white rounded-md flex items-center"
+                  >
+                    <AiFillDelete />
+                  </button>
+                </div>
               </div>
-              
-              <div className="buttons flex h-full">
-                <button
-                  onClick={(e) => handleEdit(e, item.id)}
-                  className="bg-violet-800 hover:bg-violet-950 px-3 py-1 text-sm font-bold text-white rounded-md mx-1"
-                >
-                  <FaEdit />
-                </button>
-                <button
-                  onClick={(e) => handleDelete(e,item.id)}
-                  className="bg-violet-800 hover:bg-violet-950 px-3 py-1 text-sm font-bold text-white rounded-md mx-1"
-                >
-                  <AiFillDelete />
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       </div>
     </>
-  );
+  )
 }
 
 export default App
